@@ -1,82 +1,195 @@
-🖥️ AutoPrinter — Versão Executável
-O AutoPrinter é um projeto desenvolvido durante a Semana Python com foco em automação.
-Ele foi pensado para simplificar processos repetitivos, permitindo que o usuário rode o programa em formato executável (.exe) sem precisar ter o Python instalado.
+# 🖥️ AutoPrinter (AutoWeb) — GUI + Build de Executável
 
-📂 Estrutura do Projeto
-main.py → Ponto de entrada do sistema.
+![Python](https://img.shields.io/badge/Python-3.x-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![Qt](https://img.shields.io/badge/Qt-PySide6-217346?style=for-the-badge&logo=qt&logoColor=white)
+![PyInstaller](https://img.shields.io/badge/PyInstaller-Build-yellow?style=for-the-badge)
 
-Controller.py → Contém a lógica principal e integração com interface.
+O **AutoPrinter** é um app com interface (Qt/PySide6) que coleta dados na tela e dispara um processo de automação que:
+- **gera um script Python “embutindo” e-mail/senha**
+- **builda um executável (`.exe`) via PyInstaller**
+- o executável gerado captura **screenshot** e envia por e-mail em loop
 
-Menu.ui → Interface gráfica criada no Qt Designer.
+> ⚠️ **IMPORTANTE (Ética & Segurança):** este projeto envolve captura de tela e envio por e-mail. Use **somente em ambiente próprio**, com **consentimento explícito** e **nunca** em computadores de terceiros.
 
-Executavel.py  / ExecutavelGerado.py → Scripts auxiliares para empacotamento com PyInstaller.
+---
 
-dist/ → Pasta onde o executável final é gerado.
+## ✅ O que tem neste repositório
 
-🛠️ Bibliotecas utilizadas
-os / sys / shutil → Manipulação de arquivos, pastas e execução.
+- `Main.py` — ponto de entrada (abre a janela da aplicação)
+- `Controller.py` — lógica da interface (carrega o `Menu.ui`, pega inputs e chama o sistema)
+- `Executavel.py` — gera um novo script (`ExecutavelGerado.py`) e compila o executável com PyInstaller
 
-time → Controle de cronômetro e delays.
+> O `Menu.ui` precisa existir para a interface abrir.
 
-pyautogui → Automação de captura de tela e interação.
+---
 
-smtplib / email.mime → Envio de e-mails com anexos.
+## 📂 Estrutura recomendada do projeto
 
-PySide6 (Qt) → Interface gráfica (Menu.ui).
+> **Do jeito que o código está hoje**, o `Menu.ui` é carregado a partir **da mesma pasta do `Controller.py`**.
 
-PyInstaller → Geração do executável .exe.
+Exemplo simples:
 
-⚙️ Como usar
-Clone o repositório:
+AutoPrinter/
+├─ Main.py
+├─ Controller.py
+├─ Executavel.py
+├─ Menu.ui
+└─ (dist/) ← gerado pelo PyInstaller
 
-bash
+---
+
+## 🛠️ Requisitos
+
+- Python 3.x
+- Windows (o build `.exe` e a parte de inicialização automática fazem mais sentido aqui)
+- Dependências:
+  - PySide6
+  - pyautogui
+  - pyinstaller
+
+---
+
+## ⚙️ Instalação
+
+### 1) Clonar
+ - bash
 git clone https://github.com/GustavoABA/AutoPrinter.git
 cd AutoPrinter
-Instale as dependências:
 
-bash
-pip install pyautogui PySide6
-pip install pyinstaller
-Configuração de e-mail (se aplicável):
+### 2) (Opcional, mas recomendado) Criar ambiente virtual
+python -m venv .venv
 
-Ative a verificação em duas etapas no Gmail.
+Ativar no Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
 
-Gere uma senha de aplicativo em Configurações de Segurança do Google.
+### 3) Instalar dependências
+pip install PySide6 pyautogui pyinstaller
 
-Substitua no código:
+Se aparecer erro do PyAutoGUI no Windows, às vezes falta permissão de captura/controle. Rode como usuário normal e teste.
 
-python
-server.login("seuemail@gmail.com", "SENHA_DE_APLICATIVO")
-Execute o projeto diretamente:
+▶️ Como executar
 
-bash
-python main.py
-📦 Gerando o executável
-Para compilar o projeto em um .exe:
+python Main.py
+O Main.py importa Controller e chama Controller.abrir_janela(), abrindo a interface.
+Quando o usuário clica no botão (e aceita o checkbox), a aplicação chama Executavel.executar_system(remetente, destinatario, senha).]
 
-bash
-pyinstaller main.py --onefile --noconsole --name AutoPrinter --add-data "Menu.ui;."
-O executável será gerado em dist/AutoPrinter.exe.
+🧠 Como funciona (por baixo do capô)
+1) Interface (Controller.py)
 
-O parâmetro --add-data garante que o arquivo Menu.ui seja incluído no pacote.
+Carrega Menu.ui via QUiLoader
 
-🔄 Fluxo do Programa
-O usuário abre a interface gráfica (Menu.ui).
+Lê três campos de texto:
 
-Insere dados como remetente, destinatário e senha de aplicativo.
+destinatário
 
-O sistema captura tela ou processa arquivos conforme configurado.
+remetente
 
-O resultado é enviado automaticamente por e-mail.
+senha
 
-O programa pode ser configurado para iniciar junto com o sistema.
+Valida se o checkbox está marcado
 
-📝 Observação
-Por falta de tempo, a pasta Executavel foi criada com auxílio da IA Copilot, que automatizou a geração do script responsável por compilar e organizar o executável.
-Isso acelerou o desenvolvimento sem comprometer a lógica principal.
+Ao clicar no botão, dispara o processo de build chamando o módulo Executavel
+
+2) Gerador de executável (Executavel.py)
+
+Quando você chama Executavel.executar_system(remetente, destinatario, senha) ele:
+
+Monta um novo script (string grande) com:
+
+captura de tela via pyautogui
+
+envio por e-mail via smtplib (Gmail: smtp.gmail.com:587)
+
+loop com sleep(120) (a cada 2 minutos)
+
+Salva esse script como:
+
+ExecutavelGerado.py
+
+Chama PyInstaller programaticamente (PyInstaller.__main__.run) para gerar:
+
+ExecutavelFinal.exe (onefile, noconsole)
+
+🔐 Configuração de e-mail (Gmail)
+
+Para Gmail, normalmente você deve usar Senha de App (não a senha normal):
+
+Ative Verificação em duas etapas na conta Google
+
+Gere uma Senha de Aplicativo
+
+Use essa senha no campo “senha” da interface
+
+Isso reduz risco e evita bloqueios do Google.
+
+📦 Build do executável (manual)
+
+Você pode buildar manualmente também.
+
+A) Build do app principal (GUI)
+pyinstaller --onefile --noconsole --name AutoPrinter Main.py
+
+
+Se você quiser empacotar o Menu.ui junto, use --add-data, mas atenção: o código atual procura Menu.ui por caminho relativo ao Controller.py.
+Uma abordagem comum é manter Menu.ui junto do .exe (ou adaptar o código para carregar de resources).
+
+B) Build do executável gerado (fluxo do projeto)
+
+O fluxo “principal” do projeto é via GUI:
+
+abrir o app
+
+preencher remetente/destinatário/senha
+
+marcar checkbox
+
+clicar no botão
+
+A partir disso, o próprio Executavel.py gera e builda o executável final automaticamente.
+
+⚠️ Nota importante: inicialização automática no Windows
+
+O script gerado possui lógica para copiar o executável para a pasta de Inicializar do Windows (Startup).
+Isso significa que ele pode começar junto com o Windows.
+
+✅ Se sua intenção for apenas demonstrar automação, considere remover/desativar essa parte antes de publicar/usar em terceiros.
+
+Recomendação: deixe isso desligado por padrão e só habilite em ambiente de teste controlado.
+
+🧯 Troubleshooting
+“A janela não abre / não acha Menu.ui”
+
+Garanta que o arquivo Menu.ui esteja no mesmo diretório do Controller.py.
+
+“PyInstaller não gera exe”
+
+Confira se você instalou o pyinstaller no mesmo ambiente Python que está executando.
+
+“Email falha (login)”
+
+Use Senha de Aplicativo no Gmail
+
+Verifique se o remetente/destinatário estão corretos
+
+📌 Roadmap (ideias boas pra evoluir)
+
+ Remover dependências não usadas (ex.: helium parece não ser utilizado)
+
+ Guardar credenciais de forma segura (evitar embutir senha em script gerado)
+
+ Criar modo de teste (sem loop infinito / sem startup)
+
+ Logs na interface (QTextEdit) para o usuário ver o status do build/envio
 
 👨‍💻 Autor
-Projeto desenvolvido por GustavoABA durante a Semana Python.
-Versão executável montada com apoio da IA Copilot para otimização de tempo.
 
-👉 Gustavo, esse README já está pronto para você colar no GitHub. Quer que eu também monte um .gitignore básico para não versionar os arquivos da pasta dist e os .spec do PyInstaller?
+Desenvolvido por GustavoABA — foco em produtividade e automação.
+
+
+### Observação rápida (pra você não tomar ban/flag em repo)
+O seu `Executavel.py` hoje gera um executável que **captura screenshot em loop** e tenta **colocar o programa na inicialização do Windows**. Isso é o tipo de coisa que pode ser interpretado como comportamento “suspeito” por antivírus e plataformas. Documentei no README de um jeito **responsável** e com aviso de consentimento. :contentReference[oaicite:3]{index=3}
+
+Se você quiser, eu também posso **reescrever a descrição do projeto** pra ficar mais “portfólio safe” (mesma ideia técnica, mas com foco em *automação local controlada* e *sem persistência automática*).
+::contentReference[oaicite:4]{index=4}
+
+
