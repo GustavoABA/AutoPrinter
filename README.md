@@ -29,12 +29,14 @@ O **AutoPrinter** é um app com interface (Qt/PySide6) que coleta dados na tela 
 
 Exemplo simples:
 
+```
 AutoPrinter/
 ├─ Main.py
 ├─ Controller.py
 ├─ Executavel.py
 ├─ Menu.ui
-└─ (dist/) ← gerado pelo PyInstaller
+└─ (dist/)  ← gerado pelo PyInstaller
+```
 
 ---
 
@@ -52,144 +54,136 @@ AutoPrinter/
 ## ⚙️ Instalação
 
 ### 1) Clonar
- - bash
+```bash
 git clone https://github.com/GustavoABA/AutoPrinter.git
 cd AutoPrinter
+```
 
 ### 2) (Opcional, mas recomendado) Criar ambiente virtual
+```bash
 python -m venv .venv
+```
 
-Ativar no Windows (PowerShell):
+**Ativar no Windows (PowerShell):**
+```bash
 .\.venv\Scripts\Activate.ps1
+```
 
 ### 3) Instalar dependências
+```bash
 pip install PySide6 pyautogui pyinstaller
+```
 
-Se aparecer erro do PyAutoGUI no Windows, às vezes falta permissão de captura/controle. Rode como usuário normal e teste.
+> Se aparecer erro do PyAutoGUI no Windows, às vezes falta permissão de captura/controle. Rode como usuário normal e teste.
 
-▶️ Como executar
+---
 
+## ▶️ Como executar
+
+```bash
 python Main.py
-O Main.py importa Controller e chama Controller.abrir_janela(), abrindo a interface.
-Quando o usuário clica no botão (e aceita o checkbox), a aplicação chama Executavel.executar_system(remetente, destinatario, senha).]
+```
 
-🧠 Como funciona (por baixo do capô)
-1) Interface (Controller.py)
+O `Main.py` importa `Controller` e chama `Controller.abrir_janela()`, abrindo a interface.  
+Quando o usuário clica no botão (e aceita o checkbox), a aplicação chama `Executavel.executar_system(remetente, destinatario, senha)`.
 
-Carrega Menu.ui via QUiLoader
+---
 
-Lê três campos de texto:
+## 🧠 Como funciona (por baixo do capô)
 
-destinatário
+### 1) Interface (Controller.py)
+- Carrega `Menu.ui` via `QUiLoader`
+- Lê três campos de texto:
+  - **destinatário**
+  - **remetente**
+  - **senha**
+- Valida se o **checkbox** está marcado
+- Ao clicar no botão, dispara o processo de build chamando o módulo `Executavel`
 
-remetente
+---
 
-senha
+### 2) Gerador de executável (Executavel.py)
+Quando você chama `Executavel.executar_system(remetente, destinatario, senha)` ele:
 
-Valida se o checkbox está marcado
+1. Monta um **novo script** (string grande) com:
+   - captura de tela via `pyautogui`
+   - envio por e-mail via `smtplib` (Gmail: smtp.gmail.com:587)
+   - loop com `sleep(120)` (a cada 2 minutos)
+2. Salva esse script como:
+   - `ExecutavelGerado.py`
+3. Chama PyInstaller programaticamente (`PyInstaller.__main__.run`) para gerar:
+   - `ExecutavelFinal.exe` (onefile, noconsole)
 
-Ao clicar no botão, dispara o processo de build chamando o módulo Executavel
+---
 
-2) Gerador de executável (Executavel.py)
+## 🔐 Configuração de e-mail (Gmail)
 
-Quando você chama Executavel.executar_system(remetente, destinatario, senha) ele:
+Para Gmail, normalmente você deve usar **Senha de App** (não a senha normal):
 
-Monta um novo script (string grande) com:
+1. Ative **Verificação em duas etapas** na conta Google
+2. Gere uma **Senha de Aplicativo**
+3. Use essa senha no campo “senha” da interface
 
-captura de tela via pyautogui
+> Isso reduz risco e evita bloqueios do Google.
 
-envio por e-mail via smtplib (Gmail: smtp.gmail.com:587)
+---
 
-loop com sleep(120) (a cada 2 minutos)
-
-Salva esse script como:
-
-ExecutavelGerado.py
-
-Chama PyInstaller programaticamente (PyInstaller.__main__.run) para gerar:
-
-ExecutavelFinal.exe (onefile, noconsole)
-
-🔐 Configuração de e-mail (Gmail)
-
-Para Gmail, normalmente você deve usar Senha de App (não a senha normal):
-
-Ative Verificação em duas etapas na conta Google
-
-Gere uma Senha de Aplicativo
-
-Use essa senha no campo “senha” da interface
-
-Isso reduz risco e evita bloqueios do Google.
-
-📦 Build do executável (manual)
+## 📦 Build do executável (manual)
 
 Você pode buildar manualmente também.
 
-A) Build do app principal (GUI)
+### A) Build do app principal (GUI)
+```bash
 pyinstaller --onefile --noconsole --name AutoPrinter Main.py
+```
 
+> Se você quiser empacotar o `Menu.ui` junto, use `--add-data`, mas atenção: o código atual procura `Menu.ui` por caminho relativo ao `Controller.py`.  
+> Uma abordagem comum é manter `Menu.ui` junto do `.exe` (ou adaptar o código para carregar de resources).
 
-Se você quiser empacotar o Menu.ui junto, use --add-data, mas atenção: o código atual procura Menu.ui por caminho relativo ao Controller.py.
-Uma abordagem comum é manter Menu.ui junto do .exe (ou adaptar o código para carregar de resources).
-
-B) Build do executável gerado (fluxo do projeto)
-
+### B) Build do executável gerado (fluxo do projeto)
 O fluxo “principal” do projeto é via GUI:
+- abrir o app
+- preencher remetente/destinatário/senha
+- marcar checkbox
+- clicar no botão
 
-abrir o app
+A partir disso, o próprio `Executavel.py` gera e builda o executável final automaticamente.
 
-preencher remetente/destinatário/senha
+---
 
-marcar checkbox
+## ⚠️ Nota importante: inicialização automática no Windows
 
-clicar no botão
-
-A partir disso, o próprio Executavel.py gera e builda o executável final automaticamente.
-
-⚠️ Nota importante: inicialização automática no Windows
-
-O script gerado possui lógica para copiar o executável para a pasta de Inicializar do Windows (Startup).
+O script gerado possui lógica para **copiar o executável para a pasta de Inicializar do Windows** (Startup).  
 Isso significa que ele pode começar junto com o Windows.
 
-✅ Se sua intenção for apenas demonstrar automação, considere remover/desativar essa parte antes de publicar/usar em terceiros.
+✅ Se sua intenção for **apenas demonstrar automação**, considere **remover/desativar** essa parte antes de publicar/usar em terceiros.
 
-Recomendação: deixe isso desligado por padrão e só habilite em ambiente de teste controlado.
+> Recomendação: deixe isso **desligado por padrão** e só habilite em ambiente de teste controlado.
 
-🧯 Troubleshooting
-“A janela não abre / não acha Menu.ui”
+---
 
-Garanta que o arquivo Menu.ui esteja no mesmo diretório do Controller.py.
+## 🧯 Troubleshooting
 
-“PyInstaller não gera exe”
+### “A janela não abre / não acha Menu.ui”
+- Garanta que o arquivo `Menu.ui` esteja no mesmo diretório do `Controller.py`.
 
-Confira se você instalou o pyinstaller no mesmo ambiente Python que está executando.
+### “PyInstaller não gera exe”
+- Confira se você instalou o `pyinstaller` no mesmo ambiente Python que está executando.
 
-“Email falha (login)”
+### “Email falha (login)”
+- Use Senha de Aplicativo no Gmail
+- Verifique se o remetente/destinatário estão corretos
 
-Use Senha de Aplicativo no Gmail
+---
 
-Verifique se o remetente/destinatário estão corretos
+## 📌 Roadmap (ideias boas pra evoluir)
+- [ ] Remover dependências não usadas (ex.: `helium` parece não ser utilizado)
+- [ ] Guardar credenciais de forma segura (evitar embutir senha em script gerado)
+- [ ] Criar modo de teste (sem loop infinito / sem startup)
+- [ ] Logs na interface (QTextEdit) para o usuário ver o status do build/envio
 
-📌 Roadmap (ideias boas pra evoluir)
+---
 
- Remover dependências não usadas (ex.: helium parece não ser utilizado)
+## 👨‍💻 Autor
 
- Guardar credenciais de forma segura (evitar embutir senha em script gerado)
-
- Criar modo de teste (sem loop infinito / sem startup)
-
- Logs na interface (QTextEdit) para o usuário ver o status do build/envio
-
-👨‍💻 Autor
-
-Desenvolvido por GustavoABA — foco em produtividade e automação.
-
-
-### Observação rápida (pra você não tomar ban/flag em repo)
-O seu `Executavel.py` hoje gera um executável que **captura screenshot em loop** e tenta **colocar o programa na inicialização do Windows**. Isso é o tipo de coisa que pode ser interpretado como comportamento “suspeito” por antivírus e plataformas. Documentei no README de um jeito **responsável** e com aviso de consentimento. :contentReference[oaicite:3]{index=3}
-
-Se você quiser, eu também posso **reescrever a descrição do projeto** pra ficar mais “portfólio safe” (mesma ideia técnica, mas com foco em *automação local controlada* e *sem persistência automática*).
-::contentReference[oaicite:4]{index=4}
-
-
+Desenvolvido por **GustavoABA** — foco em **produtividade** e **automação**.
